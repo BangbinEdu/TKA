@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUPERADMIN</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="https://lh3.googleusercontent.com/d/16rll5zsRdwTbR3nF_NmPKwY51tg4tnOn">    
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --accent-color: #3498db;
+            --text-light: #ecf0f1;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f1c40f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; color: #333; overflow-x: hidden; }
+
+        /* --- LOGIN OVERLAY --- */
+        #login-overlay {
+            position: fixed; inset: 0; background: #2c3e50; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: white; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+        .login-input {
+            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; outline: none; transition: 0.3s;
+        }
+        .login-input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(52,152,219,0.2); }
+        .login-btn {
+            width: 100%; padding: 12px; background: var(--accent-color); color: white;
+            border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.3s;
+        }
+        .login-btn:hover { background: #2980b9; }
+
+        /* --- SIDEBAR CUSTOM --- */
+        .sidebar {
+            position: fixed; top: 0; left: 0; height: 100%; width: var(--sidebar-width);
+            background: var(--sidebar-bg); color: var(--text-light);
+            transition: all 0.3s ease; z-index: 100;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto; /* Allow scroll if many schools */
+        }
+        .sidebar::-webkit-scrollbar { width: 5px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+        
+        .sidebar-header {
+            padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.1);
+        }
+        .sidebar-header h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; }
+        .sidebar-header span { font-size: 0.8rem; opacity: 0.7; }
+
+        .nav-links { list-style: none; padding-top: 20px; padding-bottom: 50px; }
+        .nav-links li { position: relative; }
+        
+        .nav-links li a {
+            display: flex; align-items: center; padding: 15px 25px;
+            color: #bdc3c7; text-decoration: none; transition: 0.3s;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            justify-content: flex-start;
+        }
+        
+        .nav-links li a:hover, .nav-links li a.active {
+            background: var(--sidebar-hover); color: white; border-left-color: var(--accent-color);
+        }
+        
+        .nav-links li a i { margin-right: 15px; width: 25px; text-align: center; font-size: 1.1rem; }
+        .nav-links li a:hover i { transform: scale(1.2); transition: transform 0.2s; }
+
+        /* DROPDOWN & SUBMENU STYLES */
+        .dropdown-btn { justify-content: space-between !important; }
+        .dropdown-icon { transition: transform 0.3s; font-size: 0.8rem !important; margin-right: 0 !important; width: auto !important; }
+        .dropdown-btn.open .dropdown-icon { transform: rotate(180deg); }
+        
+        .sub-menu { display: none; background: rgba(0,0,0,0.2); list-style: none; }
+        .sub-menu.show { display: block; }
+        
+        /* Level 1 Submenu (Sekolah) */
+        .sub-menu li a { padding-left: 45px; font-size: 0.9rem; color: #bdc3c7; }
+        
+        /* Level 2 Submenu (Mapel) */
+        .sub-menu .sub-menu li a { padding-left: 65px; background: rgba(0,0,0,0.1); }
+        
+        /* Level 3 Submenu (TO) */
+        .sub-menu .sub-menu .sub-menu li a { padding-left: 85px; font-size: 0.85rem; }
+        
+        .sub-menu li a:hover, .sub-menu li a.active-sub { color: white; color: var(--accent-color); }
+
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: var(--sidebar-width); padding: 30px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .header-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header-title h1 { font-size: 1.8rem; color: #2c3e50; }
+
+        /* --- CARDS & TABLES --- */
+        .card { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fff; }
+        
+        .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: #333; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #555; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        tr:hover { background: #f1f2f6; }
+        td .actions { display: flex; gap: 5px; }
+
+        /* Badges */
+        .score-badge { font-weight: bold; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; }
+        .score-high { background: #d4edda; color: #155724; }
+        .score-mid { background: #fff3cd; color: #856404; }
+        .score-low { background: #f8d7da; color: #721c24; }
+        .gender-badge { display: inline-block; width: 25px; height: 25px; line-height: 25px; text-align: center; border-radius: 50%; color: white; font-size: 0.8rem; }
+        .gender-l { background-color: #3498db; }
+        .gender-p { background-color: #e91e63; }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe; border-radius: 8px; width: 100%; max-width: 500px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2); animation: zoomIn 0.3s; position: relative;
+        }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #f8f9fa; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
+        .form-control:focus { border-color: var(--accent-color); }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; }
+
+        /* Alert Modal */
+        #alert-modal-content { text-align: center; padding: 30px; }
+        .alert-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
+        .text-success { color: var(--success); }
+        .text-error { color: var(--danger); }
+
+        /* Animations */
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Helper */
+        .hidden { display: none !important; }
+        .file-upload-wrapper { border: 2px dashed #ddd; padding: 20px; text-align: center; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .file-upload-wrapper:hover { border-color: var(--accent-color); background: #f0f8ff; }
+        .template-download-area { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; }
+
+    </style>
+</head>
+<body>
+
+    <!-- === LOGIN GATE === -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2 style="margin-bottom: 10px; color: #2c3e50;">Superadmin Login</h2>
+            <p style="margin-bottom: 20px; font-size: 0.9rem; color: #7f8c8d;">Masukkan kredensial untuk akses database</p>
+            <form id="form-login" onsubmit="event.preventDefault(); handleLogin();">
+                <input type="text" id="login-user" class="login-input" placeholder="Username" required>
+                <input type="password" id="login-pass" class="login-input" placeholder="Password" required>
+                <button type="submit" id="btn-login" class="login-btn">MASUK <i class="fas fa-arrow-right ms-2"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- === APP CONTAINER (HIDDEN UNTIL LOGIN) === -->
+    <div id="app-container" class="hidden">
+        
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>PUSMENDIK</h2>
+                <span>Panel Superadmin</span>
+            </div>
+            <ul class="nav-links">
+                <li>
+                    <a href="./">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                </li>
+                <li><a href="#" class="nav-link-main active" onclick="switchView('admin', this)"><i class="fas fa-school"></i> Admin Sekolah</a></li>
+                
+                <!-- Menu Guru -->
+                <li><a href="#" class="nav-link-main" onclick="switchView('guru', this)"><i class="fas fa-chalkboard-teacher"></i> Manajemen Guru</a></li>
+                
+                <!-- Menu Data Sekolah (Dynamic Dropdown) -->
+                <li>
+                    <a href="#" class="dropdown-btn nav-link-main" onclick="toggleSubmenu('menu-data-sekolah', this)">
+                        <div style="display:flex; align-items:center;">
+                            <i class="fas fa-university"></i> Data Sekolah
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-icon"></i>
+                    </a>
+                    <ul id="menu-data-sekolah" class="sub-menu">
+                        <li style="padding:10px 20px; color:#7f8c8d; font-size:0.8rem;"><i>Memuat sekolah...</i></li>
+                        <!-- List Sekolah akan di-inject disini -->
+                    </ul>
+                </li>
+
+                <li style="margin-top: 30px;"><a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</a></li>
+            </ul>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            
+            <!-- VIEW: ADMIN SEKOLAH -->
+            <div id="view-admin">
+                <div class="header-title">
+                    <h1>Data Admin Sekolah</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="openModal('modal-upload-admin')" class="btn btn-success"><i class="fas fa-file-excel"></i> Import Excel</button>
+                        <button onclick="openModal('modal-add-admin')" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah Admin</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>NPSN</th>
+                                <th>Nama Sekolah</th>
+                                <th>Username Admin</th>
+                                <th>Password</th>
+                                <th style="text-align: right;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-admin-body">
+                            <!-- Data injected via JS -->
+                        </tbody>
+                    </table>
+                    <div id="loading-admin" style="text-align: center; padding: 20px; color: #777;">
+                        <i class="fas fa-circle-notch fa-spin"></i> Memuat data...
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: MANAJEMEN GURU -->
+            <div id="view-guru" class="hidden">
+                <div class="header-title">
+                    <h1>Data Guru (Penulis Soal)</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="openModal('modal-upload-guru')" class="btn btn-success"><i class="fas fa-file-excel"></i> Import Excel</button>
+                        <button onclick="openModal('modal-add-guru')" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah Guru</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama Guru</th>
+                                <th>Username</th>
+                                <th>Password</th>
+                                <th style="text-align: right;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-guru-body">
+                            <!-- Data injected via JS -->
+                        </tbody>
+                    </table>
+                    <div id="loading-guru" style="text-align: center; padding: 20px; color: #777;">
+                        <i class="fas fa-circle-notch fa-spin"></i> Memuat data...
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: NILAI SEKOLAH (NEW) -->
+            <div id="view-nilai-sekolah" class="hidden">
+                <div class="header-title">
+                    <div>
+                        <h1 id="title-nilai-sekolah">Hasil Ujian</h1>
+                        <p id="subtitle-nilai-sekolah" class="text-success" style="font-weight:600; font-size:1rem;">-</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="refreshCurrentNilai()" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        <button onclick="downloadPDF()" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>NISN</th>
+                                <th>Nama Siswa</th>
+                                <th>L/P</th>
+                                <th>Skor</th>
+                                <th>Nilai Akhir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-nilai-sekolah-body">
+                            <!-- Data injected -->
+                        </tbody>
+                    </table>
+                    <div id="loading-nilai-sekolah" class="hidden" style="text-align: center; padding: 20px; color: #777;">
+                        <i class="fas fa-circle-notch fa-spin"></i> Menghitung nilai...
+                    </div>
+                    <div id="empty-nilai-sekolah" class="hidden" style="text-align: center; padding: 20px; color: #777;">
+                        Belum ada data nilai.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- === MODALS === -->
+
+    <!-- MODAL ADD/EDIT ADMIN -->
+    <div id="modal-add-admin" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-shield text-primary"></i> <span id="title-modal-admin">Tambah Admin</span></h3>
+                <button onclick="closeModal('modal-add-admin')" class="btn" style="background:none; color:#333;"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="event.preventDefault(); saveAdmin();">
+                <div class="modal-body">
+                    <input type="hidden" id="admin-id"> <!-- ID untuk Edit -->
+                    <div class="form-group">
+                        <label>NPSN (Kunci Sekolah)</label>
+                        <input type="text" id="admin-npsn" class="form-control" placeholder="Contoh: 10101010" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Sekolah</label>
+                        <input type="text" id="admin-sekolah" class="form-control" placeholder="Contoh: SDN 1 Jakarta" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username Admin</label>
+                        <input type="text" id="admin-username" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password Admin</label>
+                        <input type="text" id="admin-password" class="form-control" placeholder="Masukkan password baru" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeModal('modal-add-admin')" class="btn btn-warning">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADD/EDIT GURU -->
+    <div id="modal-add-guru" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-chalkboard-teacher text-primary"></i> <span id="title-modal-guru">Tambah Guru</span></h3>
+                <button onclick="closeModal('modal-add-guru')" class="btn" style="background:none; color:#333;"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="event.preventDefault(); saveGuru();">
+                <div class="modal-body">
+                    <input type="hidden" id="guru-id">
+                    <div class="form-group">
+                        <label>Nama Guru</label>
+                        <input type="text" id="guru-nama" class="form-control" placeholder="Contoh: Budi Santoso" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="guru-username" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="text" id="guru-password" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeModal('modal-add-guru')" class="btn btn-warning">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL UPLOAD ADMIN -->
+    <div id="modal-upload-admin" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Admin dari Excel</h3>
+                <button onclick="closeModal('modal-upload-admin')" class="btn" style="background:none;"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+                    Format Excel: <b>npsn, nama_sekolah, username, password</b> (Header baris pertama)
+                </p>
+                <div class="file-upload-wrapper" onclick="document.getElementById('file-admin').click()">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #aaa;"></i>
+                    <p>Klik untuk pilih file Excel (.xlsx)</p>
+                    <input type="file" id="file-admin" accept=".xlsx, .xls" style="display: none;" onchange="processExcelAdmin(this)">
+                </div>
+                
+                <!-- TEMPLATE DOWNLOAD -->
+                <div class="template-download-area">
+                    <p style="font-size:0.8rem; color:#888; margin-bottom:8px;">Belum punya template?</p>
+                    <button onclick="downloadTemplate('admin')" class="btn btn-info" style="font-size:0.85rem;">
+                        <i class="fas fa-download"></i> Download Template Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL UPLOAD GURU -->
+    <div id="modal-upload-guru" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Guru dari Excel</h3>
+                <button onclick="closeModal('modal-upload-guru')" class="btn" style="background:none;"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+                    Format Excel: <b>nama_guru, username, password</b> (Header baris pertama)
+                </p>
+                <div class="file-upload-wrapper" onclick="document.getElementById('file-guru').click()">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #aaa;"></i>
+                    <p>Klik untuk pilih file Excel (.xlsx)</p>
+                    <input type="file" id="file-guru" accept=".xlsx, .xls" style="display: none;" onchange="processExcelGuru(this)">
+                </div>
+
+                <!-- TEMPLATE DOWNLOAD -->
+                <div class="template-download-area">
+                    <p style="font-size:0.8rem; color:#888; margin-bottom:8px;">Belum punya template?</p>
+                    <button onclick="downloadTemplate('guru')" class="btn btn-info" style="font-size:0.85rem;">
+                        <i class="fas fa-download"></i> Download Template Guru
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ALERT CUSTOM -->
+    <div id="modal-alert" class="modal" style="z-index: 2000;">
+        <div class="modal-content" style="max-width: 350px;">
+            <div id="alert-modal-content">
+                <i id="alert-icon" class="fas fa-check-circle alert-icon text-success"></i>
+                <h3 id="alert-title">Berhasil!</h3>
+                <p id="alert-msg" style="color: #666; margin-top: 5px;">Data telah disimpan.</p>
+                <button onclick="closeModal('modal-alert')" class="btn btn-primary" style="margin-top: 20px; width: 100%;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === LOGIC === -->
+    <script>
+        // --- 1. CONFIGURATION ---
+        const SB_URL = 'https://splkwqvcjhkaquticmsl.supabase.co';
+        const SB_KEY = 'sb_publishable_3X8ykgq95Tw1__HhPWc7uA_j1Q-u7xL'; // Anon Key Public
+        
+        const db = window.supabase.createClient(SB_URL, SB_KEY);
+
+        // State untuk view Nilai
+        let activeNPSN = null;
+        let activeSchoolName = null;
+        let activeMapel = null;
+        let activeKategori = null;
+
+        // --- 2. AUTHENTICATION & LOGIN ---
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+        });
+
+        function checkSession() {
+            const session = localStorage.getItem('superadmin_session');
+            if (session) {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').classList.remove('hidden');
+                loadAdmins();
+                loadSchoolsMenu(); // Load dynamic menu
+            }
+        }
+
+        async function handleLogin() {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            const btn = document.getElementById('btn-login');
+            
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Checking...';
+            
+            const { data, error } = await db
+                .from('akun_superadmin')
+                .select('*')
+                .eq('username', u)
+                .eq('password', p)
+                .single();
+
+            if (data) {
+                localStorage.setItem('superadmin_session', JSON.stringify({
+                    id: data.id,
+                    username: data.username,
+                    role: 'superadmin',
+                    loginTime: new Date().toISOString()
+                }));
+
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').classList.remove('hidden');
+                loadAdmins();
+                loadSchoolsMenu();
+            } else {
+                showAlert('Login Gagal', 'Username atau Password salah.', false);
+                btn.innerHTML = 'MASUK <i class="fas fa-arrow-right ms-2"></i>';
+            }
+        }
+
+        function handleLogout() {
+            if(confirm('Apakah Anda yakin ingin keluar?')) {
+                localStorage.removeItem('superadmin_session');
+                location.reload();
+            }
+        }
+
+        // --- 3. MENU & NAVIGATION SYSTEM (UPDATED) ---
+        
+        function toggleSubmenu(id, btn) {
+            // Toggle current submenu
+            const submenu = document.getElementById(id);
+            if (submenu) submenu.classList.toggle('show');
+            if (btn) btn.classList.toggle('open');
+            
+            // Prevent event bubbling if necessary (e.g. click on icon vs link)
+            // event.stopPropagation(); // Use only if needed
+        }
+
+        function switchView(viewName, element) {
+            // Reset active state
+            document.querySelectorAll('.nav-link-main').forEach(el => el.classList.remove('active'));
+            // Remove active-sub from all sidebar links
+            document.querySelectorAll('.sub-menu li a').forEach(el => el.classList.remove('active-sub'));
+            
+            if(element) element.classList.add('active');
+
+            // Hide all views
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-guru').classList.add('hidden');
+            document.getElementById('view-nilai-sekolah').classList.add('hidden');
+
+            // Show selected
+            const target = document.getElementById('view-' + viewName);
+            if(target) target.classList.remove('hidden');
+
+            // Load data
+            if(viewName === 'admin') loadAdmins();
+            if(viewName === 'guru') loadGurus();
+        }
+
+        // --- 4. DYNAMIC SIDEBAR: DATA SEKOLAH ---
+        async function loadSchoolsMenu() {
+            const menuContainer = document.getElementById('menu-data-sekolah');
+            
+            const { data: schools, error } = await db
+                .from('sekolah')
+                .select('*')
+                .order('nama_sekolah', { ascending: true });
+
+            menuContainer.innerHTML = ''; // Clear loading text
+
+            if(error || !schools || schools.length === 0) {
+                menuContainer.innerHTML = '<li style="padding:10px 20px; font-size:0.8rem; color:#999;">Tidak ada sekolah.</li>';
+                return;
+            }
+
+            schools.forEach(school => {
+                const npsn = school.npsn;
+                const safeName = school.nama_sekolah.replace(/'/g, "\\'"); // Escape quote
+                
+                // Structure: School -> Mapel (Mat/Ind) -> TO 1-5
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <a href="#" class="dropdown-btn" onclick="toggleSubmenu('school-${npsn}', this)">
+                        ${school.nama_sekolah} <i class="fas fa-chevron-down dropdown-icon"></i>
+                    </a>
+                    <ul id="school-${npsn}" class="sub-menu">
+                        <!-- MATEMATIKA -->
+                        <li>
+                            <a href="#" class="dropdown-btn" onclick="toggleSubmenu('math-${npsn}', this)">
+                                Matematika <i class="fas fa-chevron-down dropdown-icon"></i>
+                            </a>
+                            <ul id="math-${npsn}" class="sub-menu">
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Matematika', 'TO1', this)">Try Out 1</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Matematika', 'TO2', this)">Try Out 2</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Matematika', 'TO3', this)">Try Out 3</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Matematika', 'TO4', this)">Try Out 4</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Matematika', 'TO5', this)">Try Out 5</a></li>
+                            </ul>
+                        </li>
+                        <!-- BAHASA INDONESIA -->
+                        <li>
+                            <a href="#" class="dropdown-btn" onclick="toggleSubmenu('indo-${npsn}', this)">
+                                Bahasa <i class="fas fa-chevron-down dropdown-icon"></i>
+                            </a>
+                            <ul id="indo-${npsn}" class="sub-menu">
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Bahasa Indonesia', 'TO1', this)">Try Out 1</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Bahasa Indonesia', 'TO2', this)">Try Out 2</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Bahasa Indonesia', 'TO3', this)">Try Out 3</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Bahasa Indonesia', 'TO4', this)">Try Out 4</a></li>
+                                <li><a onclick="loadNilaiSekolah('${npsn}', '${safeName}', 'Bahasa Indonesia', 'TO5', this)">Try Out 5</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                `;
+                menuContainer.appendChild(li);
+            });
+        }
+
+        // --- 5. LOGIC: VIEW NILAI SEKOLAH ---
+        async function loadNilaiSekolah(npsn, namaSekolah, mapel, kategori, element) {
+            // Update UI State
+            document.querySelectorAll('.nav-link-main').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sub-menu li a').forEach(el => el.classList.remove('active-sub'));
+            
+            // Highlight clicked item
+            if(element) element.classList.add('active-sub');
+
+            // Switch View
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-guru').classList.add('hidden');
+            document.getElementById('view-nilai-sekolah').classList.remove('hidden');
+
+            // Set Global State
+            activeNPSN = npsn;
+            activeSchoolName = namaSekolah;
+            activeMapel = mapel;
+            activeKategori = kategori;
+
+            // Update Headers
+            document.getElementById('title-nilai-sekolah').innerText = `Hasil Ujian: ${kategori}`;
+            document.getElementById('subtitle-nilai-sekolah').innerHTML = `<i class="fas fa-school"></i> ${namaSekolah} | ${mapel}`;
+
+            await executeLoadNilai();
+        }
+
+        async function refreshCurrentNilai() {
+            if(activeNPSN && activeMapel) {
+                await executeLoadNilai();
+            }
+        }
+
+        async function executeLoadNilai() {
+            const tbody = document.getElementById('table-nilai-sekolah-body');
+            const loading = document.getElementById('loading-nilai-sekolah');
+            const empty = document.getElementById('empty-nilai-sekolah');
+
+            tbody.innerHTML = '';
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+
+            try {
+                // 1. Ambil Siswa Sekolah Ini
+                const { data: listSiswa, error: errSiswa } = await db
+                    .from('akun_siswa')
+                    .select('id, nama_lengkap, username, jenis_kelamin')
+                    .eq('npsn', activeNPSN);
+                
+                if (errSiswa) throw errSiswa;
+                if (!listSiswa || listSiswa.length === 0) {
+                    loading.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    empty.innerText = "Sekolah ini belum memiliki data siswa.";
+                    return;
+                }
+
+                const siswaIds = listSiswa.map(s => s.id);
+
+                // 2. Ambil Jawaban
+                const { data: listJawaban, error: errJawab } = await db
+                    .from('jawaban_siswa')
+                    .select('siswa_id, soal_id, jawaban_dipilih')
+                    .in('siswa_id', siswaIds);
+
+                if (errJawab) throw errJawab;
+                if (!listJawaban || listJawaban.length === 0) {
+                    loading.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    empty.innerText = "Belum ada siswa yang mengerjakan ujian ini.";
+                    return;
+                }
+
+                // 3. Ambil Soal
+                const soalIds = [...new Set(listJawaban.map(j => j.soal_id))];
+                const { data: listSoal, error: errSoal } = await db
+                    .from('soal')
+                    .select('id, kategori, mapel, kunci_jawaban, tipe_soal')
+                    .in('id', soalIds)
+                    .eq('kategori', activeKategori)
+                    .eq('mapel', activeMapel);
+
+                if (errSoal) throw errSoal;
+                
+                if(!listSoal || listSoal.length === 0) {
+                    loading.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    empty.innerText = "Data soal tidak ditemukan untuk kategori ini.";
+                    return;
+                }
+
+                // Map & Calculate
+                const soalMap = {};
+                listSoal.forEach(s => { soalMap[s.id] = s; });
+
+                const siswaMap = {};
+                listSiswa.forEach(s => { siswaMap[s.id] = s; });
+
+                const resultData = {};
+
+                listJawaban.forEach(j => {
+                    const soal = soalMap[j.soal_id];
+                    if (!soal) return;
+
+                    const siswaId = j.siswa_id;
+                    if (!resultData[siswaId]) resultData[siswaId] = { correct: 0, total: 0 };
+
+                    let isCorrect = false;
+                    try {
+                        const jawabanUser = JSON.parse(j.jawaban_dipilih);
+                        let kunciDB = soal.kunci_jawaban;
+
+                        if (soal.tipe_soal === 'pilihan_ganda') {
+                            isCorrect = (jawabanUser === kunciDB);
+                        } else if (soal.tipe_soal === 'pilihan_ganda_kompleks') {
+                            const parsedKunci = (typeof kunciDB === 'string' && (kunciDB.startsWith('[') || kunciDB.startsWith('{'))) 
+                                ? JSON.parse(kunciDB) : kunciDB;
+                            if (Array.isArray(parsedKunci) && Array.isArray(jawabanUser)) {
+                                isCorrect = (JSON.stringify(parsedKunci.sort()) === JSON.stringify(jawabanUser.sort()));
+                            }
+                        } else if (soal.tipe_soal === 'benar_salah') {
+                             const parsedKunci = typeof kunciDB === 'string' ? JSON.parse(kunciDB) : kunciDB;
+                             isCorrect = (JSON.stringify(parsedKunci) === JSON.stringify(jawabanUser));
+                        } else {
+                             isCorrect = (JSON.stringify(jawabanUser) === JSON.stringify(kunciDB));
+                        }
+                    } catch (e) { console.error(e); }
+
+                    resultData[siswaId].total += 1;
+                    if (isCorrect) resultData[siswaId].correct += 1;
+                });
+
+                // Render
+                let hasData = false;
+                for (const sId in resultData) {
+                    hasData = true;
+                    const siswaObj = siswaMap[sId];
+                    if(!siswaObj) continue;
+
+                    const stats = resultData[sId];
+                    const nilai = (stats.correct / stats.total) * 100;
+
+                    let badgeClass = 'score-low';
+                    if(nilai >= 80) badgeClass = 'score-high';
+                    else if(nilai >= 60) badgeClass = 'score-mid';
+                    
+                    const jkClass = siswaObj.jenis_kelamin === 'L' ? 'gender-l' : 'gender-p';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-bold" style="color:#2c3e50;">${siswaObj.username}</td>
+                        <td>${siswaObj.nama_lengkap}</td>
+                        <td><span class="gender-badge ${jkClass}">${siswaObj.jenis_kelamin}</span></td>
+                        <td>${stats.correct} / ${stats.total}</td>
+                        <td><span class="score-badge ${badgeClass}">${nilai.toFixed(1)}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                loading.classList.add('hidden');
+                if(!hasData) empty.classList.remove('hidden');
+
+            } catch (err) {
+                loading.classList.add('hidden');
+                showAlert('Error', err.message, false);
+            }
+        }
+
+        async function downloadPDF() {
+            if (!activeNPSN || !activeMapel) {
+                showAlert('Info', 'Silakan pilih data sekolah terlebih dahulu.', false);
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text(`Laporan Hasil Ujian - ${activeSchoolName}`, 14, 20);
+            
+            doc.setFontSize(11);
+            doc.text(`Kategori : ${activeKategori}`, 14, 28);
+            doc.text(`Mapel    : ${activeMapel}`, 14, 34);
+            doc.text(`NPSN     : ${activeNPSN}`, 14, 40);
+
+            const tableElement = document.getElementById('table-nilai-sekolah-body');
+            const rows = [];
+            
+            const trs = tableElement.querySelectorAll('tr');
+            if (trs.length === 0) {
+                showAlert('Info', 'Tidak ada data untuk diunduh.', false);
+                return;
+            }
+
+            trs.forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                const rowData = [
+                    tds[0].innerText, 
+                    tds[1].innerText, 
+                    tds[2].innerText, 
+                    tds[3].innerText, 
+                    tds[4].innerText 
+                ];
+                rows.push(rowData);
+            });
+
+            doc.autoTable({
+                startY: 48,
+                head: [['NISN', 'Nama Siswa', 'L/P', 'Skor', 'Nilai Akhir']],
+                body: rows,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 2 },
+                headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            const filename = `Hasil_${activeSchoolName}_${activeMapel}.pdf`;
+            doc.save(filename);
+        }
+
+        // --- 6. EXISTING CRUD LOGIC (ADMIN & GURU) ---
+        async function loadAdmins() {
+            const tbody = document.getElementById('table-admin-body');
+            document.getElementById('loading-admin').classList.remove('hidden');
+            tbody.innerHTML = '';
+
+            const { data } = await db
+                .from('akun_admin')
+                .select(`id, username, password, npsn, sekolah ( nama_sekolah )`)
+                .order('id', { ascending: false });
+
+            document.getElementById('loading-admin').classList.add('hidden');
+
+            if (data) {
+                data.forEach(item => {
+                    const namaSekolah = item.sekolah ? item.sekolah.nama_sekolah : '-';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="badge bg-light text-dark font-monospace">${item.npsn}</span></td>
+                        <td>${namaSekolah}</td>
+                        <td style="font-weight:bold; color:#2980b9;">${item.username}</td>
+                        <td>${item.password}</td>
+                        <td style="text-align: right;">
+                            <div class="actions" style="justify-content: flex-end;">
+                                <button onclick="editAdmin('${item.id}', '${item.npsn}', '${namaSekolah}', '${item.username}', '${item.password}')" class="btn btn-warning" style="padding: 5px 10px;"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteAdmin('${item.id}')" class="btn btn-danger" style="padding: 5px 10px;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function editAdmin(id, npsn, sekolah, user, pass) {
+            document.getElementById('title-modal-admin').innerText = 'Edit Admin';
+            document.getElementById('admin-id').value = id;
+            document.getElementById('admin-npsn').value = npsn;
+            document.getElementById('admin-sekolah').value = sekolah;
+            document.getElementById('admin-username').value = user;
+            document.getElementById('admin-password').value = pass;
+            document.getElementById('admin-npsn').readOnly = true; 
+            openModal('modal-add-admin');
+        }
+
+        function openModal(id) {
+            if(id === 'modal-add-admin') {
+                document.getElementById('title-modal-admin').innerText = 'Tambah Admin';
+                document.getElementById('admin-id').value = '';
+                document.getElementById('admin-npsn').readOnly = false;
+                document.querySelector('#modal-add-admin form').reset();
+            }
+            if(id === 'modal-add-guru') {
+                document.getElementById('title-modal-guru').innerText = 'Tambah Guru';
+                document.getElementById('guru-id').value = '';
+                document.querySelector('#modal-add-guru form').reset();
+            }
+            const modal = document.getElementById(id);
+            modal.style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        async function saveAdmin() {
+            const id = document.getElementById('admin-id').value;
+            const npsn = document.getElementById('admin-npsn').value;
+            const nama_sekolah = document.getElementById('admin-sekolah').value;
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+
+            closeModal('modal-add-admin');
+            showLoading('Menyimpan Data...');
+
+            try {
+                const { error: errSekolah } = await db.from('sekolah').upsert({ npsn: npsn, nama_sekolah: nama_sekolah }, { onConflict: 'npsn' });
+                if (errSekolah) throw errSekolah;
+
+                if (id) {
+                    const { error } = await db.from('akun_admin').update({ username, password }).eq('id', id);
+                    if(error) throw error;
+                } else {
+                    const { error } = await db.from('akun_admin').insert({ username, password, npsn });
+                    if(error) throw error;
+                }
+                showAlert('Berhasil', 'Data Admin Sekolah tersimpan.', true);
+                loadAdmins();
+                loadSchoolsMenu(); // Refresh sidebar menu
+            } catch (err) {
+                console.error(err);
+                showAlert('Gagal', 'Terjadi kesalahan: ' + err.message, false);
+            }
+        }
+
+        async function deleteAdmin(id) {
+            if(!confirm('Hapus Admin ini? Sekolah terkait TIDAK akan dihapus, hanya akun admin.')) return;
+            const { error } = await db.from('akun_admin').delete().eq('id', id);
+            if (!error) {
+                showAlert('Terhapus', 'Akun admin dihapus.', true);
+                loadAdmins();
+            } else {
+                showAlert('Gagal', error.message, false);
+            }
+        }
+
+        async function loadGurus() {
+            const tbody = document.getElementById('table-guru-body');
+            document.getElementById('loading-guru').classList.remove('hidden');
+            tbody.innerHTML = '';
+            const { data } = await db.from('akun_guru').select('*').order('id', { ascending: false });
+            document.getElementById('loading-guru').classList.add('hidden');
+            if (data) {
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.nama_guru || '-'}</td>
+                        <td style="font-weight:bold; color:#2980b9;">${item.username}</td>
+                        <td>${item.password}</td>
+                        <td style="text-align: right;">
+                            <div class="actions" style="justify-content: flex-end;">
+                                <button onclick="editGuru('${item.id}', '${item.nama_guru}', '${item.username}', '${item.password}')" class="btn btn-warning" style="padding: 5px 10px;"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteGuru('${item.id}')" class="btn btn-danger" style="padding: 5px 10px;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function editGuru(id, nama, user, pass) {
+            document.getElementById('title-modal-guru').innerText = 'Edit Guru';
+            document.getElementById('guru-id').value = id;
+            document.getElementById('guru-nama').value = nama;
+            document.getElementById('guru-username').value = user;
+            document.getElementById('guru-password').value = pass;
+            openModal('modal-add-guru');
+        }
+
+        async function saveGuru() {
+            const id = document.getElementById('guru-id').value;
+            const nama_guru = document.getElementById('guru-nama').value;
+            const username = document.getElementById('guru-username').value;
+            const password = document.getElementById('guru-password').value;
+            closeModal('modal-add-guru');
+            showLoading('Menyimpan Data...');
+            let error;
+            if (id) {
+                const res = await db.from('akun_guru').update({ nama_guru, username, password }).eq('id', id);
+                error = res.error;
+            } else {
+                const res = await db.from('akun_guru').insert({ nama_guru, username, password });
+                error = res.error;
+            }
+            if (!error) {
+                showAlert('Berhasil', 'Data Guru tersimpan.', true);
+                loadGurus();
+            } else {
+                showAlert('Gagal', error.message, false);
+            }
+        }
+
+        async function deleteGuru(id) {
+            if(!confirm('Hapus Guru ini?')) return;
+            const { error } = await db.from('akun_guru').delete().eq('id', id);
+            if (!error) {
+                showAlert('Terhapus', 'Akun guru dihapus.', true);
+                loadGurus();
+            }
+        }
+
+        // --- UTILS & EXCEL ---
+        function downloadTemplate(type) {
+            let data = [];
+            let ws_name = "Template";
+            let cols = [];
+            if(type === 'admin') {
+                ws_name = "Template Admin";
+                data = [["npsn", "nama_sekolah", "username", "password"], [10203040, "Contoh Sekolah", "admin101", "rahasia123"]];
+                cols = [{ wch: 15 }, { wch: 35 }, { wch: 20 }, { wch: 20 }];
+            } else if(type === 'guru') {
+                ws_name = "Template Guru";
+                data = [["nama_guru", "username", "password"], ["Budi Santoso", "guru01", "guru123"]];
+                cols = [{ wch: 35 }, { wch: 20 }, { wch: 20 }];
+            }
+            var wb = XLSX.utils.book_new();
+            var ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = cols;
+            XLSX.utils.book_append_sheet(wb, ws, ws_name);
+            XLSX.writeFile(wb, `Template_Import_${type.toUpperCase()}.xlsx`);
+        }
+
+        function processExcelAdmin(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                closeModal('modal-upload-admin');
+                showLoading(`Memproses ${jsonData.length} data...`);
+                let successCount = 0;
+                for (let row of jsonData) {
+                    if(row.npsn && row.username && row.password) {
+                        await db.from('sekolah').upsert({ npsn: row.npsn.toString(), nama_sekolah: row.nama_sekolah || 'Sekolah' });
+                        const { error } = await db.from('akun_admin').insert({ npsn: row.npsn.toString(), username: row.username.toString(), password: row.password.toString() });
+                        if(!error) successCount++;
+                    }
+                }
+                showAlert('Selesai', `${successCount} Data Admin berhasil diimport.`, true);
+                loadAdmins();
+                loadSchoolsMenu(); // Reload menu
+                input.value = ''; 
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelGuru(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                closeModal('modal-upload-guru');
+                showLoading(`Memproses ${jsonData.length} data...`);
+                let successCount = 0;
+                for (let row of jsonData) {
+                    if(row.username && row.password) {
+                        const { error } = await db.from('akun_guru').insert({ nama_guru: row.nama_guru || 'Guru', username: row.username.toString(), password: row.password.toString() });
+                        if(!error) successCount++;
+                    }
+                }
+                showAlert('Selesai', `${successCount} Data Guru berhasil diimport.`, true);
+                loadGurus();
+                input.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showAlert(title, msg, isSuccess) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            const icon = document.getElementById('alert-icon');
+            if(isSuccess) icon.className = 'fas fa-check-circle alert-icon text-success';
+            else icon.className = 'fas fa-times-circle alert-icon text-error';
+            openModal('modal-alert');
+        }
+
+        function showLoading(text) {
+            document.getElementById('alert-title').innerText = "Mohon Tunggu";
+            document.getElementById('alert-msg').innerText = text;
+            document.getElementById('alert-icon').className = 'fas fa-circle-notch fa-spin alert-icon';
+            document.getElementById('alert-icon').style.color = '#3498db';
+            openModal('modal-alert');
+        }
+    </script>
+</body>
+</html>

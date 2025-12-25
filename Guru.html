@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Guru - Manajemen Soal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f3f4f6; }
+        
+        /* Sidebar Styling */
+        .sidebar { background: #2c3e50; color: white; min-height: 100vh; transition: all 0.3s; }
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .nav-item:hover, .nav-item.active { background: #34495e; border-left-color: #3498db; }
+        
+        /* Form Styling */
+        .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem; }
+        .form-input { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; rounded-md; font-size: 0.9rem; focus: ring-2 ring-blue-500; }
+        
+        /* Custom Components */
+        .preview-box { border: 2px dashed #cbd5e1; padding: 1rem; text-align: center; border-radius: 0.5rem; background: #f8fafc; min-height: 100px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .preview-box img { max-width: 100%; max-height: 200px; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .mini-preview img { max-height: 60px; border-radius: 4px; border: 1px solid #ddd; margin-top: 5px; }
+
+        /* Modal & Utils */
+        .hidden-view { display: none !important; }
+        .btn-primary { background-color: #3498db; color: white; padding: 0.5rem 1rem; rounded: 0.375rem; font-weight: 500; transition: 0.2s; }
+        .btn-primary:hover { background-color: #2980b9; }
+        
+        /* Loading Overlay */
+        #loading-overlay { background: rgba(255,255,255,0.8); backdrop-filter: blur(2px); z-index: 9999; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- === LOGIN MODAL === -->
+    <div id="modal-login" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-90">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md transform transition-all scale-100">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Login Guru</h2>
+                <p class="text-gray-500 text-sm">Masuk untuk mengelola Bank Soal</p>
+            </div>
+            <form onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
+                <div>
+                    <label class="form-label">Username</label>
+                    <input type="text" id="login-user" class="form-input" placeholder="Username Guru" required>
+                </div>
+                <div>
+                    <label class="form-label">Password</label>
+                    <input type="password" id="login-pass" class="form-input" placeholder="Password" required>
+                </div>
+                <button type="submit" id="btn-login" class="w-full btn-primary py-2.5 mt-2">MASUK <i class="fas fa-arrow-right ml-2"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- === SIDEBAR === -->
+    <div class="sidebar w-64 flex-shrink-0 hidden md:block" id="sidebar">
+        <div class="p-6 border-b border-gray-700 text-center">
+            <h1 class="text-xl font-bold tracking-wider">PANEL GURU</h1>
+            <p class="text-xs text-gray-400 mt-1" id="guru-name-display">Halo, Guru</p>
+        </div>
+        <nav class="mt-6">
+            <div class="nav-item active" onclick="switchView('input')">
+                <i class="fas fa-edit w-6"></i> Input Soal
+            </div>
+            <div class="nav-item" onclick="switchView('list')">
+                <i class="fas fa-list w-6"></i> Daftar Soal
+            </div>
+            <div class="nav-item text-red-400 hover:text-red-300 mt-10" onclick="location.reload()">
+                <i class="fas fa-sign-out-alt w-6"></i> Keluar
+            </div>
+        </nav>
+    </div>
+
+    <!-- === MAIN CONTENT === -->
+    <div class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- Top Bar (Mobile Toggle) -->
+        <header class="bg-white shadow-sm h-16 flex items-center px-6 border-b z-10">
+            <button class="md:hidden text-gray-600 mr-4"><i class="fas fa-bars text-xl"></i></button>
+            <h2 class="text-lg font-bold text-gray-700" id="page-title">Input Soal Baru</h2>
+        </header>
+
+        <!-- CONTENT: INPUT SOAL -->
+        <main id="view-input" class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-4xl mx-auto space-y-6 pb-20">
+                
+                <!-- Status Mode -->
+                <div id="edit-mode-indicator" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
+                    <p class="font-bold">Mode Edit</p>
+                    <p>Anda sedang mengedit soal ID: <span id="edit-id-display"></span></p>
+                </div>
+
+                <!-- 1. Kategori & Mapel -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <!-- Pilihan Paket Try Out -->
+                        <div class="bg-indigo-50 p-4 rounded border border-indigo-100">
+                            <label class="form-label text-indigo-800"><i class="fas fa-layer-group mr-1"></i> Paket Soal</label>
+                            <select id="kategori-soal" class="form-input font-semibold text-gray-700">
+                                <option value="TO1">Try Out 1</option>
+                                <option value="TO2">Try Out 2</option>
+                                <option value="TO3">Try Out 3</option>
+                                <option value="TO4">Try Out 4</option>
+                                <option value="TO5">Try Out 5</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Pilihan Mata Pelajaran -->
+                        <div class="bg-blue-50 p-4 rounded border border-blue-100">
+                            <label class="form-label text-blue-800"><i class="fas fa-book mr-1"></i> Mata Pelajaran</label>
+                            <select id="mapel-soal" class="form-input font-semibold text-gray-700">
+                                <option value="Matematika">Matematika</option>
+                                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                                <option disabled>──────────</option>
+                                <option value="IPA">IPA</option>
+                                <option value="IPS">IPS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Tipe Soal</label>
+                        <select id="tipe-soal" class="form-input bg-gray-50" onchange="changeSoalType()">
+                            <option value="pilihan_ganda">Pilihan Ganda (PG)</option>
+                            <option value="pilihan_ganda_kompleks">Pilihan Ganda Kompleks</option>
+                            <option value="benar_salah">Benar / Salah</option>
+                            <option value="menjodohkan">Menjodohkan</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Konten Pertanyaan (Teks)</label>
+                        <textarea id="konten-text" rows="3" class="form-input" placeholder="Tulis pertanyaan di sini..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label flex justify-between items-center">
+                            <span>Link Gambar Pemantik (Opsional)</span>
+                            <span class="text-xs font-normal text-blue-600 cursor-pointer" onclick="showHelpLink()"><i class="fas fa-info-circle"></i> Cara pakai link GDrive</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="link-gambar-utama" class="form-input" placeholder="Paste link Google Drive atau link gambar langsung disini..." oninput="previewImage(this.value, 'preview-utama')">
+                        </div>
+                        <div id="preview-utama" class="preview-box mt-3 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Area Jawaban (Dynamic) -->
+                <div class="bg-white rounded-lg shadow p-6 relative">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Opsi & Kunci Jawaban</h3>
+                    <p class="text-xs text-gray-500 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
+                        <i class="fas fa-lightbulb text-yellow-500"></i> <b>Tips:</b> Anda bisa mengisi Teks saja, Gambar saja, atau keduanya untuk setiap opsi jawaban.
+                    </p>
+                    
+                    <!-- Container: Pilihan Ganda -->
+                    <div id="container-pg" class="space-y-4">
+                        <!-- Generated via JS -->
+                    </div>
+
+                    <!-- Container: PG Kompleks -->
+                    <div id="container-pg-kompleks" class="hidden space-y-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-sm text-gray-500">Centang kotak di kiri untuk menandai sebagai kunci jawaban BENAR.</p>
+                            <button type="button" onclick="addOptionPGK()" class="text-sm text-blue-600 font-bold hover:underline">+ Tambah Opsi</button>
+                        </div>
+                        <div id="list-pgk" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Container: Benar Salah -->
+                    <div id="container-bs" class="hidden space-y-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-sm text-gray-500">Tentukan kunci jawaban (B/S) untuk setiap pernyataan.</p>
+                            <button type="button" onclick="addStatementBS()" class="text-sm text-blue-600 font-bold hover:underline">+ Tambah Pernyataan</button>
+                        </div>
+                        <div id="list-bs" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Container: Menjodohkan -->
+                    <div id="container-match" class="hidden space-y-4">
+                        <p class="text-sm text-gray-500 mb-4">Pasangkan <b>Premis</b> (Kiri) dengan <b>Respon</b> (Kanan) yang benar.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-blue-50 p-4 rounded">
+                                <h4 class="font-bold text-blue-800 mb-2">Daftar Premis (Soal/Kiri)</h4>
+                                <div id="list-premis" class="space-y-2"></div>
+                                <button onclick="addItemMatch('premis')" class="mt-2 text-xs bg-blue-200 hover:bg-blue-300 px-2 py-1 rounded text-blue-800 font-bold">+ Tambah Premis</button>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded">
+                                <h4 class="font-bold text-green-800 mb-2">Daftar Respon (Jawaban/Kanan)</h4>
+                                <div id="list-respon" class="space-y-2"></div>
+                                <button onclick="addItemMatch('respon')" class="mt-2 text-xs bg-green-200 hover:bg-green-300 px-2 py-1 rounded text-green-800 font-bold">+ Tambah Respon</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 bg-yellow-50 p-4 rounded border border-yellow-200">
+                            <h4 class="font-bold text-yellow-800 mb-2 text-sm">Kunci Jawaban Default (Lurus)</h4>
+                            <p class="text-xs text-gray-600 italic">Sistem secara otomatis memasangkan Premis #1 dengan Respon #1, Premis #2 dengan Respon #2, dst. Pastikan Anda menginputnya secara berpasangan.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Action Button -->
+                <div class="flex justify-end gap-3">
+                    <button onclick="resetForm()" class="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300" id="btn-cancel">Reset</button>
+                    <button onclick="saveSoal()" id="btn-save" class="px-6 py-3 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2">
+                        <i class="fas fa-save"></i> SIMPAN SOAL
+                    </button>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- CONTENT: DAFTAR SOAL -->
+        <main id="view-list" class="hidden-view flex-1 overflow-y-auto p-6">
+            <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-700">Database Soal Saya</h3>
+                    <button onclick="loadSoalList()" class="text-blue-600 text-sm hover:underline"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Try Out</th>
+                                <th class="px-6 py-3">Mapel</th>
+                                <th class="px-6 py-3">Tipe</th>
+                                <th class="px-6 py-3 w-1/3">Pertanyaan</th>
+                                <th class="px-6 py-3 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-soal-body">
+                            <!-- Data -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="loading-list" class="hidden p-8 text-center text-gray-400">
+                    <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+                </div>
+            </div>
+        </main>
+        
+    </div>
+
+    <!-- Loading Overlay Global -->
+    <div id="loading-overlay" class="fixed inset-0 flex items-center justify-center hidden">
+        <div class="bg-white p-5 rounded-lg shadow-lg flex flex-col items-center">
+            <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl mb-3"></i>
+            <p class="font-bold text-gray-700" id="loading-text">Memproses...</p>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="modal-alert" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden-view">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
+            <div id="alert-icon-container" class="mb-4 text-4xl"></div>
+            <h3 id="alert-title" class="text-lg font-bold text-gray-800 mb-2"></h3>
+            <p id="alert-msg" class="text-sm text-gray-600 mb-6"></p>
+            <button onclick="closeModal('modal-alert')" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const SB_URL = 'https://splkwqvcjhkaquticmsl.supabase.co';
+        const SB_KEY = 'sb_publishable_3X8ykgq95Tw1__HhPWc7uA_j1Q-u7xL'; 
+        const db = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let currentGuru = null;
+        let editingId = null; // Track ID for Edit Mode
+
+        // --- 2. AUTHENTICATION ---
+        async function handleLogin() {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            const btn = document.getElementById('btn-login');
+            
+            btn.innerHTML = 'Mengecek...';
+            
+            try {
+                const { data, error } = await db.from('akun_guru').select('*').eq('username', u).eq('password', p).single();
+                
+                if (error || !data) throw new Error("Username atau Password salah.");
+
+                currentGuru = data;
+                document.getElementById('modal-login').classList.add('hidden-view');
+                document.getElementById('guru-name-display').innerText = data.nama_guru || data.username;
+                
+                // Init Forms
+                initPGForm();
+                
+            } catch (err) {
+                alertCustom('Login Gagal', err.message, 'error');
+                btn.innerHTML = 'MASUK <i class="fas fa-arrow-right ml-2"></i>';
+            }
+        }
+
+        function switchView(view) {
+            document.querySelectorAll('main').forEach(el => el.classList.add('hidden-view'));
+            document.getElementById('view-' + view).classList.remove('hidden-view');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            // Highlight logic simple
+            if(view === 'input') document.querySelectorAll('.nav-item')[0].classList.add('active');
+            if(view === 'list') {
+                document.querySelectorAll('.nav-item')[1].classList.add('active');
+                loadSoalList();
+            }
+            
+            document.getElementById('page-title').innerText = view === 'input' ? 'Input Soal Baru' : 'Daftar Soal';
+            
+            // Jika pindah ke list, reset form edit
+            if(view === 'list') resetForm();
+        }
+
+        // --- 3. HELPER & PREVIEW ---
+        function getDriveId(url) {
+            if(!url) return null;
+            const regex = /(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=|drive\.google\.com\/uc\?id=)([-a-zA-Z0-9_]+)/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        function convertToDirectLink(url) {
+            if(!url) return '';
+            const driveId = getDriveId(url);
+            if (driveId) return `https://drive.google.com/uc?export=view&id=${driveId}`;
+            return url;
+        }
+
+        function previewImage(url, targetId) {
+            const container = document.getElementById(targetId);
+            if (!url) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            const finalUrl = convertToDirectLink(url);
+            container.classList.remove('hidden');
+            container.innerHTML = `<img src="${finalUrl}" onerror="this.style.display='none'" alt="Preview" class="rounded shadow-sm max-h-40">`;
+        }
+        
+        // Helper to extract Text and Image URL from stored HTML
+        function parseContent(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            const img = div.querySelector('img');
+            const imgSrc = img ? img.src : '';
+            if(img) img.remove();
+            // Remove <br> if exists at the end
+            const text = div.innerText.trim();
+            return { text, img: imgSrc };
+        }
+
+        // --- 4. FORM GENERATOR ---
+        function initPGForm() {
+            const container = document.getElementById('container-pg');
+            container.innerHTML = '';
+            ['A','B','C','D'].forEach(opt => {
+                container.innerHTML += `
+                    <div class="border rounded p-3 bg-gray-50 flex flex-col gap-2">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="kunci_pg" value="${opt}" class="w-5 h-5 text-blue-600 cursor-pointer">
+                            <span class="font-bold w-6 bg-gray-200 text-center rounded">${opt}</span>
+                            <div class="flex-1 space-y-2">
+                                <input type="text" id="pg-text-${opt}" class="form-input text-sm" placeholder="Teks Jawaban ${opt} (Opsional)...">
+                                <input type="text" id="pg-img-${opt}" class="w-full text-xs text-blue-600 border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent" placeholder="Link Gambar (Opsional)..." oninput="previewImage(this.value, 'pg-prev-${opt}')">
+                                <div id="pg-prev-${opt}" class="hidden mini-preview"></div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        let countPGK = 0;
+        function addOptionPGK(idVal = null, textVal = '', imgVal = '', checked = false) {
+            countPGK++;
+            const id = idVal || countPGK;
+            const html = `
+                <div class="flex items-start gap-3 border p-3 rounded bg-white shadow-sm" id="pgk-item-${id}">
+                    <input type="checkbox" class="pgk-check w-5 h-5 text-blue-600 rounded mt-1" value="${id}" ${checked ? 'checked' : ''}>
+                    <div class="flex-1 space-y-2">
+                        <input type="text" class="pgk-text form-input text-sm" placeholder="Pernyataan / Teks Jawaban (Opsional)..." value="${textVal}">
+                        <input type="text" class="pgk-img w-full text-xs text-blue-600 border-none bg-gray-50 rounded px-2 py-1" placeholder="Link Gambar (Opsional)..." value="${imgVal}" oninput="previewImage(this.value, 'pgk-prev-${id}')">
+                        <div id="pgk-prev-${id}" class="hidden mini-preview"></div>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 mt-1"><i class="fas fa-trash"></i></button>
+                </div>`;
+            document.getElementById('list-pgk').insertAdjacentHTML('beforeend', html);
+            if(imgVal) previewImage(imgVal, `pgk-prev-${id}`);
+        }
+
+        let countBS = 0;
+        function addStatementBS(textVal = '', imgVal = '', keyVal = 'B') {
+            countBS++;
+            const id = countBS;
+            const html = `
+                <div class="flex items-start gap-3 border-b pb-3 mb-2" id="bs-item-${id}">
+                    <span class="font-mono text-gray-400 text-xs mt-2">#${id}</span>
+                    <div class="flex-1 space-y-2">
+                        <input type="text" class="bs-text form-input text-sm" placeholder="Teks Pernyataan (Opsional)..." value="${textVal}">
+                        <input type="text" class="bs-img w-full text-xs text-blue-600 border-none bg-gray-50 rounded px-2 py-1" placeholder="Link Gambar (Opsional)..." value="${imgVal}" oninput="previewImage(this.value, 'bs-prev-${id}')">
+                        <div id="bs-prev-${id}" class="hidden mini-preview"></div>
+                    </div>
+                    <div class="flex flex-col gap-1 mt-1">
+                        <label class="cursor-pointer text-xs px-2 py-1 rounded bg-gray-100 hover:bg-white"><input type="radio" name="bs_key_${id}" value="B" ${keyVal==='B'?'checked':''}> Benar</label>
+                        <label class="cursor-pointer text-xs px-2 py-1 rounded bg-gray-100 hover:bg-white"><input type="radio" name="bs_key_${id}" value="S" ${keyVal==='S'?'checked':''}> Salah</label>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-red-500 mt-1"><i class="fas fa-times"></i></button>
+                </div>`;
+            document.getElementById('list-bs').insertAdjacentHTML('beforeend', html);
+            if(imgVal) previewImage(imgVal, `bs-prev-${id}`);
+        }
+
+        let countPremis = 0, countRespon = 0;
+        function addItemMatch(type, textVal='', imgVal='') {
+            const container = document.getElementById(`list-${type}`);
+            const id = type === 'premis' ? ++countPremis : ++countRespon;
+            const prefix = type === 'premis' ? 'P' : 'R';
+            const uniqueId = `match-${type}-${id}`;
+            const html = `
+                <div class="flex gap-2 items-start border p-2 rounded bg-white shadow-sm mb-2 match-item-${type}" data-id="${prefix}${id}">
+                    <span class="text-xs font-bold bg-gray-200 px-1 rounded w-6 text-center mt-1">${prefix}${id}</span>
+                    <div class="flex-1 space-y-1">
+                        <input type="text" class="form-input text-xs py-1" placeholder="Teks ${type}..." value="${textVal}">
+                        <input type="text" class="w-full text-[10px] text-blue-600 border-none bg-transparent" placeholder="Link Gambar..." value="${imgVal}" oninput="previewImage(this.value, '${uniqueId}')">
+                        <div id="${uniqueId}" class="hidden mini-preview"></div>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 mt-1"><i class="fas fa-times"></i></button>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            if(imgVal) previewImage(imgVal, uniqueId);
+        }
+
+        function changeSoalType() {
+            const type = document.getElementById('tipe-soal').value;
+            // Hide All
+            document.getElementById('container-pg').classList.add('hidden');
+            document.getElementById('container-pg-kompleks').classList.add('hidden');
+            document.getElementById('container-bs').classList.add('hidden');
+            document.getElementById('container-match').classList.add('hidden');
+
+            // Show Selected
+            if(type === 'pilihan_ganda') document.getElementById('container-pg').classList.remove('hidden');
+            else if(type === 'pilihan_ganda_kompleks') document.getElementById('container-pg-kompleks').classList.remove('hidden');
+            else if(type === 'benar_salah') document.getElementById('container-bs').classList.remove('hidden');
+            else if(type === 'menjodohkan') document.getElementById('container-match').classList.remove('hidden');
+            
+            // Note: Auto-init (if empty) logic is moved to resetForm or manual call to prevent overwriting edit data
+            if(!editingId) {
+                if(type === 'pilihan_ganda_kompleks' && document.getElementById('list-pgk').children.length === 0) addOptionPGK();
+                if(type === 'benar_salah' && document.getElementById('list-bs').children.length === 0) addStatementBS();
+                if(type === 'menjodohkan' && document.getElementById('list-premis').children.length === 0) { addItemMatch('premis'); addItemMatch('respon'); }
+            }
+        }
+
+        // --- 5. SAVE & UPDATE LOGIC ---
+        function formatContent(text, imgUrl) {
+            let content = text || "";
+            if(imgUrl) {
+                const finalUrl = convertToDirectLink(imgUrl);
+                content += `<br><img src="${finalUrl}" class="max-w-full h-auto mt-2 rounded border border-gray-200" style="max-height: 200px;">`;
+            }
+            return content;
+        }
+
+        async function saveSoal() {
+            if(!currentGuru) return alertCustom('Error', 'Sesi habis, silakan login ulang.', 'error');
+
+            const kategori = document.getElementById('kategori-soal').value; // TO1, TO2...
+            const mapel = document.getElementById('mapel-soal').value;
+            const type = document.getElementById('tipe-soal').value;
+            const textQ = document.getElementById('konten-text').value;
+            const imgQ = document.getElementById('link-gambar-utama').value;
+            
+            if(!textQ && !imgQ) return alertCustom('Peringatan', 'Konten pertanyaan tidak boleh kosong!', 'error');
+
+            const konten = formatContent(textQ, imgQ);
+            let opsiJawaban = null;
+            let kunciJawaban = null;
+
+            try {
+                if(type === 'pilihan_ganda') {
+                    const opsi = [];
+                    const keyEl = document.querySelector('input[name="kunci_pg"]:checked');
+                    if(!keyEl) throw new Error("Pilih satu kunci jawaban!");
+                    ['A','B','C','D'].forEach(opt => {
+                        const txt = document.getElementById(`pg-text-${opt}`).value;
+                        const img = document.getElementById(`pg-img-${opt}`).value;
+                        opsi.push({ kode: opt, teks: formatContent(txt, img) });
+                    });
+                    opsiJawaban = opsi; kunciJawaban = keyEl.value;
+                } 
+                else if(type === 'pilihan_ganda_kompleks') {
+                    const items = [], keys = [];
+                    document.querySelectorAll('#list-pgk > div').forEach(div => {
+                        const id = div.querySelector('.pgk-check').value;
+                        const isTrue = div.querySelector('.pgk-check').checked;
+                        const text = div.querySelector('.pgk-text').value;
+                        const img = div.querySelector('.pgk-img').value;
+                        if(text || img) {
+                            items.push({ id: id, teks: formatContent(text, img) });
+                            if(isTrue) keys.push(id);
+                        }
+                    });
+                    if(items.length===0) throw new Error("Isi minimal satu opsi!");
+                    opsiJawaban = items; kunciJawaban = JSON.stringify(keys);
+                } 
+                else if(type === 'benar_salah') {
+                    const items = [], keys = {};
+                    document.querySelectorAll('#list-bs > div').forEach((div, idx) => {
+                        const text = div.querySelector('.bs-text').value;
+                        const img = div.querySelector('.bs-img').value;
+                        if(text || img) {
+                            let val = 'B';
+                            div.querySelectorAll('input[type="radio"]').forEach(r => { if(r.checked) val = r.value; });
+                            const id = idx + 1; // Re-index for clean data
+                            items.push({ id: id, pernyataan: formatContent(text, img) });
+                            keys[id] = val;
+                        }
+                    });
+                    if(items.length===0) throw new Error("Isi minimal satu pernyataan!");
+                    opsiJawaban = items; kunciJawaban = JSON.stringify(keys);
+                } 
+                else if(type === 'menjodohkan') {
+                    const premis = [], respon = [], keys = {};
+                    document.querySelectorAll('#list-premis > div').forEach((div, idx) => {
+                        const txt = div.querySelector('input[type="text"]:not([placeholder="Link Gambar..."])').value;
+                        const img = div.querySelector('input[placeholder="Link Gambar..."]').value;
+                        if(txt||img) premis.push({ id: `P${idx+1}`, teks: formatContent(txt, img) });
+                    });
+                    document.querySelectorAll('#list-respon > div').forEach((div, idx) => {
+                        const txt = div.querySelector('input[type="text"]:not([placeholder="Link Gambar..."])').value;
+                        const img = div.querySelector('input[placeholder="Link Gambar..."]').value;
+                        if(txt||img) respon.push({ id: `R${idx+1}`, teks: formatContent(txt, img) });
+                    });
+                    if(premis.length===0 || respon.length===0) throw new Error("Premis dan Respon tidak boleh kosong!");
+                    premis.forEach((p, idx) => { if(respon[idx]) keys[p.id] = respon[idx].id; });
+                    opsiJawaban = { premis, respon }; kunciJawaban = JSON.stringify(keys);
+                }
+            } catch (err) { return alertCustom('Data Belum Lengkap', err.message, 'error'); }
+
+            showLoading(true);
+            const payload = {
+                guru_id: currentGuru.id,
+                kategori: kategori, // NEW FIELD
+                mapel: mapel,
+                tipe_soal: type,
+                konten_pertanyaan: konten,
+                opsi_jawaban: opsiJawaban,
+                kunci_jawaban: kunciJawaban
+            };
+
+            let error;
+            if (editingId) {
+                // UPDATE
+                const res = await db.from('soal').update(payload).eq('id', editingId);
+                error = res.error;
+            } else {
+                // INSERT
+                const res = await db.from('soal').insert(payload);
+                error = res.error;
+            }
+            
+            showLoading(false);
+
+            if(error) {
+                alertCustom('Gagal Menyimpan', error.message, 'error');
+            } else {
+                alertCustom('Berhasil', editingId ? 'Soal berhasil diperbarui.' : 'Soal baru berhasil disimpan.', 'success');
+                resetForm();
+            }
+        }
+
+        // --- 6. EDIT & DELETE LOGIC ---
+        async function editSoal(id) {
+            showLoading(true);
+            const { data, error } = await db.from('soal').select('*').eq('id', id).single();
+            showLoading(false);
+
+            if (error || !data) return alertCustom("Error", "Gagal mengambil data soal.", "error");
+
+            // 1. Set State
+            editingId = data.id;
+            document.getElementById('edit-mode-indicator').classList.remove('hidden');
+            document.getElementById('edit-id-display').innerText = data.id;
+            document.getElementById('page-title').innerText = "Edit Soal";
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-save"></i> UPDATE SOAL';
+            document.getElementById('btn-cancel').innerText = "Batal Edit";
+
+            // 2. Switch View
+            switchView('input');
+
+            // 3. Populate Basic
+            if(data.kategori) document.getElementById('kategori-soal').value = data.kategori;
+            document.getElementById('mapel-soal').value = data.mapel;
+            document.getElementById('tipe-soal').value = data.tipe_soal;
+            
+            const parsedKonten = parseContent(data.konten_pertanyaan);
+            document.getElementById('konten-text').value = parsedKonten.text;
+            document.getElementById('link-gambar-utama').value = parsedKonten.img;
+            previewImage(parsedKonten.img, 'preview-utama');
+
+            // 4. Change Container
+            changeSoalType();
+
+            // 5. Populate Dynamic Options
+            const type = data.tipe_soal;
+            const ops = data.opsi_jawaban;
+            const key = data.kunci_jawaban;
+
+            if (type === 'pilihan_ganda') {
+                // ops array [{kode, teks}, ...]
+                ops.forEach(o => {
+                    const p = parseContent(o.teks);
+                    document.getElementById(`pg-text-${o.kode}`).value = p.text;
+                    document.getElementById(`pg-img-${o.kode}`).value = p.img;
+                    if(p.img) previewImage(p.img, `pg-prev-${o.kode}`);
+                });
+                const keyRadio = document.querySelector(`input[name="kunci_pg"][value="${key}"]`);
+                if(keyRadio) keyRadio.checked = true;
+            } 
+            else if (type === 'pilihan_ganda_kompleks') {
+                document.getElementById('list-pgk').innerHTML = '';
+                const keyArray = JSON.parse(key); // [1, 3]
+                ops.forEach(o => {
+                    const p = parseContent(o.teks);
+                    const isChecked = keyArray.includes(o.id.toString()) || keyArray.includes(parseInt(o.id));
+                    addOptionPGK(o.id, p.text, p.img, isChecked);
+                });
+            }
+            else if (type === 'benar_salah') {
+                document.getElementById('list-bs').innerHTML = '';
+                const keyObj = JSON.parse(key); // {"1":"B"}
+                ops.forEach(o => {
+                    const p = parseContent(o.pernyataan);
+                    addStatementBS(p.text, p.img, keyObj[o.id]);
+                });
+            }
+            else if (type === 'menjodohkan') {
+                document.getElementById('list-premis').innerHTML = '';
+                document.getElementById('list-respon').innerHTML = '';
+                ops.premis.forEach(x => {
+                    const p = parseContent(x.teks);
+                    addItemMatch('premis', p.text, p.img);
+                });
+                ops.respon.forEach(x => {
+                    const p = parseContent(x.teks);
+                    addItemMatch('respon', p.text, p.img);
+                });
+            }
+        }
+
+        async function loadSoalList() {
+            if(!currentGuru) return;
+            const tbody = document.getElementById('table-soal-body');
+            document.getElementById('loading-list').classList.remove('hidden');
+            tbody.innerHTML = '';
+
+            const { data, error } = await db.from('soal').select('*').eq('guru_id', currentGuru.id).order('id', {ascending: false});
+            document.getElementById('loading-list').classList.add('hidden');
+            
+            if(data && data.length > 0) {
+                data.forEach(item => {
+                    const tmp = document.createElement("DIV");
+                    tmp.innerHTML = item.konten_pertanyaan;
+                    const plainText = tmp.textContent || tmp.innerText || "";
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = "bg-white border-b hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-bold text-blue-600">#${item.id}</td>
+                        <td class="px-6 py-4"><span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded border border-indigo-200">${item.kategori || 'TO1'}</span></td>
+                        <td class="px-6 py-4"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded border border-blue-200">${item.mapel || '-'}</span></td>
+                        <td class="px-6 py-4"><span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded border border-gray-500">${item.tipe_soal}</span></td>
+                        <td class="px-6 py-4 text-gray-900 truncate max-w-xs">${plainText.substring(0, 50)}...</td>
+                        <td class="px-6 py-4 text-right flex justify-end gap-3">
+                            <button onclick="editSoal(${item.id})" class="font-medium text-yellow-600 hover:underline"><i class="fas fa-edit"></i> Edit</button>
+                            <button onclick="deleteSoal(${item.id})" class="font-medium text-red-600 hover:underline"><i class="fas fa-trash"></i> Hapus</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Belum ada soal.</td></tr>';
+            }
+        }
+
+        async function deleteSoal(id) {
+            if(!confirm("Yakin hapus soal ini?")) return;
+            const { error } = await db.from('soal').delete().eq('id', id);
+            if(!error) loadSoalList();
+            else alertCustom("Gagal", "Tidak bisa menghapus soal.", "error");
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('edit-mode-indicator').classList.add('hidden');
+            document.getElementById('page-title').innerText = "Input Soal Baru";
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-save"></i> SIMPAN SOAL';
+            document.getElementById('btn-cancel').innerText = "Reset";
+
+            document.getElementById('konten-text').value = '';
+            document.getElementById('link-gambar-utama').value = '';
+            document.getElementById('preview-utama').classList.add('hidden');
+            
+            initPGForm();
+            document.getElementById('list-pgk').innerHTML = '';
+            document.getElementById('list-bs').innerHTML = '';
+            document.getElementById('list-premis').innerHTML = '';
+            document.getElementById('list-respon').innerHTML = '';
+            changeSoalType(); // Re-init default for selected type
+        }
+
+        // --- UTILS ---
+        function alertCustom(title, msg, type) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            let icon = type === 'success' ? '<i class="fas fa-check-circle text-green-500"></i>' : '<i class="fas fa-times-circle text-red-500"></i>';
+            document.getElementById('alert-icon-container').innerHTML = icon;
+            document.getElementById('modal-alert').classList.remove('hidden-view');
+        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden-view'); }
+        function showLoading(show) { document.getElementById('loading-overlay').classList.toggle('hidden', !show); }
+        function showHelpLink() { alert("Cara menggunakan Link:\n1. Upload gambar ke Google Drive.\n2. Klik kanan gambar > 'Share' > Ubah akses jadi 'Anyone with the link'.\n3. Copy link dan paste di sini.\n\nAtau gunakan link langsung (akhiran .jpg/.png) dari internet."); }
+
+    </script>
+</body>
+</html>

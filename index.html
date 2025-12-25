@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TKA 2025</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent-blue: #3498db;
+            --accent-admin: #e74c3c;
+            --accent-guru: #27ae60;
+            --accent-siswa: #f39c12;
+            --text-light: #ecf0f1;
+            --text-dark: #333;
+            --bg-light: #f4f6f9;
+            --pusmendik-blue: #012970; /* Warna Header Tujuan */
+            --icon-circle-color: #4154f1; /* Warna Centang Tujuan */
+            --wa-color: #25D366; /* Warna WhatsApp */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; color: #444; }
+        a { text-decoration: none; }
+
+        /* --- PARALLAX HERO SECTION (Original) --- */
+        .hero {
+            position: relative;
+            height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+            color: white;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(30, 41, 59, 0.85), rgba(30, 41, 59, 0.7)), url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            z-index: -1;
+            transform: scale(1.05);
+        }
+
+        .hero-content {
+            z-index: 1;
+            padding: 0 20px;
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .hero h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #cbd5e1;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            display: inline-block;
+            padding-bottom: 10px;
+        }
+
+        .btn-hero {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid white;
+            color: white;
+            padding: 12px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+            font-size: 1rem;
+        }
+        .btn-hero:hover { background: white; color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        .scroll-down {
+            position: absolute;
+            bottom: 30px; left: 50%; transform: translateX(-50%);
+            animation: bounce 2s infinite; cursor: pointer;
+            color: rgba(255,255,255,0.6); transition: 0.3s;
+        }
+        .scroll-down:hover { color: white; }
+
+        /* --- CARDS SECTION (DIKEMBALIKAN KE VERSI ORIGINAL) --- */
+        .cards-section {
+            padding: 100px 20px;
+            background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+            position: relative;
+        }
+
+        .section-header { text-align: center; margin-bottom: 60px; }
+        .section-title {
+            font-size: 2.2rem; font-weight: 700; color: var(--primary);
+            position: relative; display: inline-block; margin-bottom: 15px;
+        }
+        .section-subtitle { color: #64748b; font-size: 1rem; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+        .cards-container {
+            display: flex; justify-content: center; gap: 30px;
+            flex-wrap: wrap; width: 100%; max-width: 1200px; margin: 0 auto;
+        }
+
+        .card {
+            background: white; width: 320px; min-height: 420px;
+            border-radius: 16px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+            position: relative; transition: all 0.4s ease;
+            overflow: hidden; cursor: pointer;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Hover Effect Original */
+        .card:hover { transform: translateY(-10px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); border-color: transparent; }
+
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Role Colors */
+        .card.admin::before { background: var(--accent-admin); }
+        .card.guru::before { background: var(--accent-guru); }
+        .card.siswa::before { background: var(--accent-siswa); }
+
+        .card:hover::before { height: 100%; opacity: 0.03; z-index: 0; }
+
+        .icon-wrapper {
+            width: 90px; height: 90px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 25px; font-size: 2.5rem; transition: 0.5s;
+            position: relative; z-index: 1;
+        }
+
+        .card.admin .icon-wrapper { background: #fee2e2; color: var(--accent-admin); }
+        .card.guru .icon-wrapper { background: #dcfce7; color: var(--accent-guru); }
+        .card.siswa .icon-wrapper { background: #fef3c7; color: var(--accent-siswa); }
+
+        .card:hover .icon-wrapper { transform: scale(1.1) rotate(5deg); }
+
+        .card h3 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; z-index: 1; }
+        .card p { color: #64748b; font-size: 0.95rem; padding: 0 25px; line-height: 1.6; z-index: 1; margin-bottom: 30px; }
+
+        .card-btn {
+            padding: 10px 28px; border-radius: 50px; font-weight: 600;
+            font-size: 0.9rem; border: 2px solid; background: transparent;
+            z-index: 1; transition: 0.3s;
+        }
+
+        .card.admin .card-btn { border-color: var(--accent-admin); color: var(--accent-admin); }
+        .card.guru .card-btn { border-color: var(--accent-guru); color: var(--accent-guru); }
+        .card.siswa .card-btn { border-color: var(--accent-siswa); color: var(--accent-siswa); }
+
+        /* PERBAIKAN: Set warna background spesifik saat hover agar teks putih terlihat */
+        .card.admin:hover .card-btn { background: var(--accent-admin); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); }
+        .card.guru:hover .card-btn { background: var(--accent-guru); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4); }
+        .card.siswa:hover .card-btn { background: var(--accent-siswa); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4); }
+
+
+        /* --- TUJUAN SECTION (LAYOUT GRID PUSMENDIK) --- */
+        .features {
+            padding-top: 80px; padding-bottom: 80px; background: #fff; overflow: hidden;
+        }
+        
+        .container-features {
+            max-width: 1200px; margin: 0 auto; padding: 0 20px;
+        }
+
+        .feature-title {
+            text-align: center; font-size: 26px; font-weight: 700;
+            color: var(--pusmendik-blue); padding-bottom: 50px;
+        }
+
+        .feature-row {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 40px;
+        }
+
+        .feature-img-col {
+            flex: 1 1 400px; text-align: center;
+        }
+        .feature-img-col img { max-width: 100%; height: auto; }
+
+        .feature-content-col { flex: 1 1 400px; }
+
+        .icon-box {
+            display: flex; align-items: flex-start; margin-bottom: 30px;
+            padding: 0; background: transparent; border: none; box-shadow: none;
+        }
+        
+        .icon-box i {
+            font-size: 24px; color: var(--icon-circle-color);
+            margin-right: 15px; line-height: 1; margin-top: 4px; flex-shrink: 0;
+        }
+
+        .icon-box p { font-size: 15px; color: #444; margin: 0; line-height: 1.5; }
+
+        /* --- PDF & WA SECTION STYLES (NEW) --- */
+        .pdf-section {
+            padding: 60px 20px;
+            background-color: #f8fafc;
+        }
+        
+        .pdf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            max-width: 1100px;
+            margin: 0 auto 50px;
+        }
+
+        .pdf-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid #edf2f7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .pdf-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: var(--accent-admin);
+        }
+
+        .pdf-icon {
+            font-size: 3rem;
+            color: var(--accent-admin); /* Merah PDF */
+            margin-bottom: 15px;
+        }
+
+        .pdf-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .pdf-btn {
+            margin-top: auto;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* WA Admin Section */
+        .wa-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .wa-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 50px;
+            padding: 10px 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .wa-card i {
+            color: var(--wa-color);
+            font-size: 1.3rem;
+        }
+
+        .wa-card:hover {
+            background: var(--wa-color);
+            color: white;
+            border-color: var(--wa-color);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+        }
+        .wa-card:hover i { color: white; }
+
+        /* PDF Preview Modal */
+        .pdf-modal-content {
+            background: white;
+            width: 95%;
+            max-width: 900px;
+            height: 90vh; /* Tinggi Full */
+            border-radius: 12px;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .pdf-modal-header {
+            padding: 15px 20px;
+            background: #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .pdf-modal-body {
+            flex: 1;
+            background: #cbd5e1;
+        }
+
+        .pdf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* --- MODAL TUTORIAL (DIKEMBALIKAN KE VERSI ORIGINAL) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+            z-index: 2000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+        .modal-content {
+            background: white; width: 90%; max-width: 480px;
+            border-radius: 20px; padding: 40px; text-align: center;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+
+        .modal-close {
+            position: absolute; top: 20px; right: 25px;
+            font-size: 1.2rem; color: #cbd5e1; cursor: pointer;
+            width: 30px; height: 30px; line-height: 30px;
+            border-radius: 50%; background: #f8fafc; transition: 0.2s;
+        }
+        .modal-close:hover { background: #ef4444; color: white; }
+
+        .modal-body i.main-icon { font-size: 3.5rem; margin-bottom: 20px; display: inline-block; }
+        .modal-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 25px; color: #1e293b; }
+        
+        .step-list { text-align: left; background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e2e8f0; }
+        .step-item { display: flex; align-items: flex-start; margin-bottom: 12px; font-size: 0.95rem; color: #475569; }
+        .step-item:last-child { margin-bottom: 0; }
+        .step-item i { margin-right: 12px; margin-top: 4px; font-size: 0.8rem; }
+
+        /* 3D Button for Modal */
+        .btn-3d {
+            display: inline-block; width: 100%; font-size: 1.1rem; font-weight: 700;
+            color: white; text-decoration: none; text-transform: uppercase;
+            padding: 16px; border-radius: 12px; transition: all 0.1s;
+            position: relative; top: 0; cursor: pointer;
+        }
+        .btn-admin { background: #e74c3c; box-shadow: 0 6px 0 #c0392b; }
+        .btn-admin:active { top: 6px; box-shadow: 0 0 0 #c0392b; }
+        .btn-guru { background: #27ae60; box-shadow: 0 6px 0 #219150; }
+        .btn-guru:active { top: 6px; box-shadow: 0 0 0 #219150; }
+        .btn-siswa { background: #f39c12; box-shadow: 0 6px 0 #d35400; }
+        .btn-siswa:active { top: 6px; box-shadow: 0 0 0 #d35400; }
+
+        /* Footer */
+        footer {
+            background: #1e293b; color: #94a3b8; padding: 40px 20px;
+            text-align: center; font-size: 0.9rem; border-top: 5px solid var(--accent-blue);
+        }
+
+        @keyframes bounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+        @keyframes floatUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .feature-row { flex-direction: column; }
+            .feature-img-col { order: 1; }
+            .feature-content-col { order: 2; }
+            .card { width: 100%; max-width: 340px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content" data-aos="fade-up">
+            <h1>WEB SIMULASI TKA</h1>
+            <h2>TES KOMPETENSI AKADEMIK</h2>
+            <p style="margin-bottom: 30px; font-size: 1.1rem; opacity: 0.9;">Platform simulasi resmi untuk mengukur capaian akademik secara objektif dan adil.</p>
+            <button class="btn-hero" onclick="scrollToSection('.cards-section')">
+                Mulai Simulasi <i class="fas fa-arrow-down" style="margin-left: 8px;"></i>
+            </button>
+        </div>
+        <div class="scroll-down" onclick="scrollToSection('.cards-section')">
+            <i class="fas fa-chevron-down fa-2x"></i>
+        </div>
+    </section>
+
+    <!-- CARDS SECTION (Dikembalikan ke Versi Awal + AOS) -->
+    <section class="cards-section">
+        <div class="section-header" data-aos="fade-up">
+            <h2 class="section-title">Akses Portal</h2>
+            <p class="section-subtitle">Silakan pilih peran Anda untuk masuk ke dashboard simulasi dan manajemen data TKA.</p>
+        </div>
+        
+        <div class="cards-container">
+            <!-- ADMIN -->
+            <div class="card admin" onclick="openTutorial('admin')" data-aos="fade-up" data-aos-delay="100">
+                <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
+                <h3>Admin Sekolah</h3>
+                <p>Kelola data peserta didik, manajemen akun guru, monitoring pelaksanaan tes, dan unduh laporan hasil secara real-time.</p>
+                <div class="card-btn">Masuk sebagai Admin</div>
+            </div>
+
+            <!-- GURU -->
+            <div class="card guru" onclick="openTutorial('guru')" data-aos="fade-up" data-aos-delay="200">
+                <div class="icon-wrapper"><i class="fas fa-chalkboard-teacher"></i></div>
+                <h3>Guru Penulis</h3>
+                <p>Akses bank soal, buat paket soal baru (PG, Kompleks, Menjodohkan, Benar-Salah), dan atur kunci jawaban ujian.</p>
+                <div class="card-btn">Masuk sebagai Guru</div>
+            </div>
+
+            <!-- SISWA -->
+            <div class="card siswa" onclick="openTutorial('siswa')" data-aos="fade-up" data-aos-delay="300">
+                <div class="icon-wrapper"><i class="fas fa-user-graduate"></i></div>
+                <h3>Peserta Didik</h3>
+                <p>Ikuti simulasi ujian berbasis komputer, kerjakan soal sesuai jenjang, dan lihat hasil evaluasi mandiri.</p>
+                <div class="card-btn">Mulai Ujian</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TUJUAN SECTION (Grid Layout Pusmendik + AOS) -->
+    <section id="features" class="features">
+        <div class="container-features">
+            <h3 class="feature-title" data-aos="fade-up">Tujuan Pelaksanaan Tes Kemampuan Akademik</h3>
+
+            <div class="feature-row">
+                <!-- Kolom Gambar -->
+                <div class="feature-img-col" data-aos="fade-right" data-aos-delay="100">
+                    <img src="https://pusmendik.kemdikbud.go.id/tka/assets/img/features.png" alt="Features TKA" class="img-fluid">
+                </div>
+
+                <!-- Kolom List -->
+                <div class="feature-content-col">
+                    <div class="icon-box" data-aos="fade-up">
+                        <i class="fas fa-check-circle"></i>
+                        <div><p>Memperoleh informasi capaian akademik Murid yang terstandar untuk keperluan seleksi akademik.</p></div>
+                    </div>
+                    <div class="icon-box" data-aos="fade-up" data-aos-delay="100">
+                        <i class="fas fa-check-circle"></i>
+                        <div><p>Menjamin pemenuhan akses Murid Pendidikan Nonformal dan Pendidikan Informal terhadap penyetaraan hasil belajar.</p></div>
+                    </div>
+                    <div class="icon-box" data-aos="fade-up" data-aos-delay="200">
+                        <i class="fas fa-check-circle"></i>
+                        <div><p>Mendorong peningkatan kapasitas pendidik dalam mengembangkan penilaian yang berkualitas.</p></div>
+                    </div>
+                    <div class="icon-box" data-aos="fade-up" data-aos-delay="300">
+                        <i class="fas fa-check-circle"></i>
+                        <div><p>Memberikan informasi kepada Murid tentang kekuatan dan kelemahan dalam bidang akademik.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW SECTION: PDF RESOURCES & WA CONTACT -->
+    <section class="pdf-section">
+        <div class="container-features">
+            <!-- PDF Cards -->
+             <div class="section-header" style="margin-bottom: 40px;" data-aos="fade-up">
+                <h3 class="feature-title" style="padding-bottom: 0; margin-bottom: 10px;">Panduan & Informasi</h3>
+                <p class="section-subtitle">Unduh dokumen panduan lengkap penggunaan aplikasi TKA.</p>
+            </div>
+
+            <div class="pdf-grid">
+                <!-- Card 1 -->
+                <div class="pdf-card" onclick="openPdf('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')" data-aos="fade-up" data-aos-delay="100">
+                    <i class="fas fa-file-pdf pdf-icon"></i>
+                    <div class="pdf-title">Panduan Aplikasi Proktor</div>
+                    <div class="pdf-btn">Lihat Dokumen <i class="fas fa-chevron-right" style="font-size: 0.8em"></i></div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="pdf-card" onclick="openPdf('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')" data-aos="fade-up" data-aos-delay="200">
+                    <i class="fas fa-file-pdf pdf-icon"></i>
+                    <div class="pdf-title">Panduan Peserta Ujian</div>
+                    <div class="pdf-btn">Lihat Dokumen <i class="fas fa-chevron-right" style="font-size: 0.8em"></i></div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="pdf-card" onclick="openPdf('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')" data-aos="fade-up" data-aos-delay="300">
+                    <i class="fas fa-file-pdf pdf-icon"></i>
+                    <div class="pdf-title">Juknis Pelaksanaan TKA</div>
+                    <div class="pdf-btn">Lihat Dokumen <i class="fas fa-chevron-right" style="font-size: 0.8em"></i></div>
+                </div>
+            </div>
+
+            <!-- WA Admin Cards -->
+             <div class="section-header" style="margin-bottom: 30px; margin-top: 60px;" data-aos="fade-up">
+                <h4 style="font-size: 1.3rem; color: var(--primary); font-weight: 700;">Hubungi Helpdesk</h4>
+            </div>
+
+            <div class="wa-grid">
+                <a href="https://wa.me/6281310051985" target="_blank" class="wa-card" data-aos="zoom-in" data-aos-delay="100">
+                    <i class="fab fa-whatsapp"></i> Admin 1
+                </a>
+                <a href="https://wa.me/6281310051985" target="_blank" class="wa-card" data-aos="zoom-in" data-aos-delay="150">
+                    <i class="fab fa-whatsapp"></i> Admin 2
+                </a>
+                <a href="https://wa.me/6281310051985" target="_blank" class="wa-card" data-aos="zoom-in" data-aos-delay="200">
+                    <i class="fab fa-whatsapp"></i> Admin 3
+                </a>
+                <a href="https://wa.me/6281310051985" target="_blank" class="wa-card" data-aos="zoom-in" data-aos-delay="250">
+                    <i class="fab fa-whatsapp"></i> Admin 4
+                </a>
+                <a href="https://wa.me/6281310051985" target="_blank" class="wa-card" data-aos="zoom-in" data-aos-delay="300">
+                    <i class="fab fa-whatsapp"></i> Admin 5
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <i class="fas fa-laptop-code fa-2x" style="color:white; margin-bottom: 20px; opacity: 0.8;"></i>
+            <p style="margin-bottom: 10px;">&copy; 2025 BANGBIN - TESK KOMPETENSI AKADEMIK.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL TUTORIAL (ORIGINAL) -->
+    <div id="modal-tutorial" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></div>
+            <div id="modal-body"></div>
+            <div style="margin-top: 25px;">
+                <a id="btn-redirect" href="#" class="btn-3d">
+                    LANJUTKAN <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PDF PREVIEW (NEW) -->
+    <div id="pdf-modal-overlay" class="modal-overlay">
+        <div class="pdf-modal-content">
+            <div class="pdf-modal-header">
+                <h3 style="font-size: 1rem; color: var(--primary); font-weight: 600;"><i class="fas fa-file-pdf" style="margin-right:8px; color: var(--accent-admin);"></i> Dokumen Preview</h3>
+                <div class="modal-close" onclick="closePdfModal()" style="position: static; margin: 0; width: 30px; height: 30px; line-height: 30px; font-size: 1rem;">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="pdf-modal-body">
+                <iframe id="pdf-frame" class="pdf-frame" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Init AOS
+        AOS.init({
+            duration: 1000,
+            easing: 'ease-in-out',
+            once: true
+        });
+
+        // Scroll
+        function scrollToSection(selector) {
+            document.querySelector(selector).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- LOGIKA MODAL TUTORIAL (ORIGINAL) ---
+        const roleData = {
+            admin: {
+                title: "Portal Admin Sekolah",
+                icon: "fa-user-shield",
+                color: "#e74c3c",
+                btnClass: "btn-admin",
+                url: "Admin.html",
+                steps: [
+                    "Login menggunakan akun Admin Sekolah (NPSN).",
+                    "Kelola data siswa (Import Excel/Input Manual).",
+                    "Pantau progress pengerjaan ujian siswa.",
+                    "Unduh rekap nilai dan laporan hasil TKA."
+                ]
+            },
+            guru: {
+                title: "Portal Guru Penulis",
+                icon: "fa-chalkboard-teacher",
+                color: "#27ae60",
+                btnClass: "btn-guru",
+                url: "Guru.html",
+                steps: [
+                    "Login menggunakan akun Guru.",
+                    "Pilih Mata Pelajaran dan Jenjang.",
+                    "Input butir soal (PG, Kompleks, Menjodohkan).",
+                    "Simpan dan publikasikan paket soal."
+                ]
+            },
+            siswa: {
+                title: "Portal Peserta Ujian",
+                icon: "fa-user-graduate",
+                color: "#f39c12",
+                btnClass: "btn-siswa",
+                url: "Siswa.html",
+                steps: [
+                    "Pilih Sekolah dan Mata Ujian TKA.",
+                    "Login menggunakan NISN dan Password.",
+                    "Konfirmasi data diri dan token ujian.",
+                    "Kerjakan soal dengan teliti sebelum waktu habis."
+                ]
+            }
+        };
+
+        const modal = document.getElementById('modal-tutorial');
+        const modalBody = document.getElementById('modal-body');
+        const btnRedirect = document.getElementById('btn-redirect');
+
+        function openTutorial(role) {
+            const data = roleData[role];
+            let stepsHtml = '';
+            data.steps.forEach(step => {
+                stepsHtml += `<div class="step-item"><i class="fas fa-check-circle" style="color:${data.color}"></i> ${step}</div>`;
+            });
+
+            modalBody.innerHTML = `
+                <i class="fas ${data.icon} main-icon" style="color: ${data.color}"></i>
+                <h2 class="modal-title" style="color: ${data.color}">${data.title}</h2>
+                <div class="step-list">
+                    ${stepsHtml}
+                </div>
+            `;
+
+            btnRedirect.href = data.url;
+            btnRedirect.className = `btn-3d ${data.btnClass}`;
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        // --- LOGIKA PDF MODAL (NEW) ---
+        const pdfModal = document.getElementById('pdf-modal-overlay');
+        const pdfFrame = document.getElementById('pdf-frame');
+
+        function openPdf(url) {
+            // Menggunakan Google Docs Viewer untuk preview jika URL bukan embed langsung
+            // Jika Anda punya link Google Drive share, ganti url dengan format preview
+            // Untuk demo ini saya load dummy PDF langsung
+            pdfFrame.src = url;
+            pdfModal.classList.add('active');
+        }
+
+        function closePdfModal() {
+            pdfModal.classList.remove('active');
+            pdfFrame.src = ''; // Clear source to stop loading
+        }
+
+        // Close on outside click (Both Modals)
+        window.onclick = function(event) {
+            if (event.target === modal) closeModal();
+            if (event.target === pdfModal) closePdfModal();
+        }
+
+        // Parallax Logic
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const heroContent = document.querySelector('.hero-content');
+            if(scrolled < 800) {
+                heroContent.style.transform = `translateY(${scrolled * 0.4}px)`;
+                heroContent.style.opacity = 1 - (scrolled / 600);
+            }
+        });
+    </script>
+</body>
+</html>
